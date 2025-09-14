@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teachable Machine Image Model</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <style>
+    /* จัดทุกอย่างให้อยู่ตรงกลางทั้งแนวนอนและแนวตั้ง */
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #f8f9fa;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Webcam Container */
+    #webcam-container {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Webcam Canvas */
+    #webcam-container canvas {
+      border: 3px solid #333;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    /* Label Container */
+    #label-container {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* ปุ่ม Start ให้ใหญ่ขึ้น */
+    button {
+      padding: 15px 40px;
+      font-size: 20px;
+      background-color: #e8529f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #ffc6e4;
+    }
+
+  </style>
+</head>
+<body>
+  <h2>Teachable Machine Image Model</h2>
+  <button type="button" onclick="init()">Start</button>
+  <div id="webcam-container"></div>
+  <div id="label-container"></div>
+
+  <script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/5FP9qOrV3/";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    // โหลดโมเดลและตั้งค่าเว็บแคม
+    async function init() {
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      const flip = true; 
+      webcam = new tmImage.Webcam(300, 300, flip); // ขยายกล้องเป็น 300x300
+      await webcam.setup(); 
+      await webcam.play();
+      window.requestAnimationFrame(loop);
+
+      // เพิ่ม webcam เข้า DOM
+      document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+      // สร้าง div สำหรับ label ของแต่ละคลาส
+      labelContainer = document.getElementById("label-container");
+      labelContainer.innerHTML = "";
+      for (let i = 0; i < maxPredictions; i++) {
+        const labelDiv = document.createElement("div");
+        labelContainer.appendChild(labelDiv);
+      }
+    }
+
+    async function loop() {
+      webcam.update();
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    // ทำนายผลจาก webcam
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+      for (let i = 0; i < maxPredictions; i++) {
+        const percent = (prediction[i].probability * 100).toFixed(2); // แปลงเป็น %
+        const classPrediction = `${prediction[i].className}: ${percent}%`;
+        labelContainer.childNodes[i].innerHTML = classPrediction;
+      }
+    }
+  </script>
+</body>
+</html>
